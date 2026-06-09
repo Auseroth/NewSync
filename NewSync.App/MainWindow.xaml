@@ -1,0 +1,54 @@
+﻿<Window x:Class="NewSync.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="NewSync Ticker"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Background="Black"
+        AllowsTransparency="False">
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Close Program" Click="CloseProgram_Click" />
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <Border Padding="10" Background="Black">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock x:Name="CalendarNameText"
+                       Grid.Row="0"
+                       Foreground="#888888"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       TextTrimming="CharacterEllipsis"
+                       Text="NewSync" />
+
+            <TextBlock x:Name="TimeSummaryText"
+                       Grid.Row="1"
+                       Margin="0,2,0,0"
+                       Foreground="#FFA500"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       TextTrimming="CharacterEllipsis"
+                       Text="Syncing calendar events..." />
+
+            <TextBlock x:Name="BodyText"
+                       Grid.Row="2"
+                       Margin="0,2,0,0"
+                       Foreground="White"
+                       FontSize="20"
+                       TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis" />
+        </Grid>
+    </Border>
+</Window>

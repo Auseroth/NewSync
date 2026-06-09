@@ -1,0 +1,109 @@
+<Window x:Class="NewSync.App.Windows.ConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="NewSync Configuration" Height="760" Width="980"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" FontSize="22" FontWeight="Bold" Text="NewSync Configuration" Margin="0,0,0,10" />
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Calendars" Margin="0,0,0,12">
+                    <DockPanel>
+                        <Button Content="+ Add Calendar" DockPanel.Dock="Top" Margin="0,0,0,8" Width="130" Click="AddCalendar_Click" />
+                        <DataGrid x:Name="CalendarsGrid" AutoGenerateColumns="False" CanUserAddRows="False" MinHeight="240">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="170" />
+                                <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="300" />
+                                <DataGridTextColumn Header="Stations (comma-separated)" Binding="{Binding StationsText}" Width="170" />
+                                <DataGridTextColumn Header="Days Out" Binding="{Binding DaysOut}" Width="70" />
+                                <DataGridCheckBoxColumn Header="Permanent" Binding="{Binding Permanent}" Width="70" IsReadOnly="True" />
+                                <DataGridTemplateColumn Header="Delete" Width="70">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Delete" Click="DeleteCalendar_Click" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </GroupBox>
+
+                <GroupBox Header="Display" Margin="0,0,0,12">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="220" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Column="0" Grid.Row="0" VerticalAlignment="Center" Text="Background" />
+                        <TextBox x:Name="BackgroundColorBox" Grid.Column="0" Grid.Row="1" Margin="0,4,8,0" />
+
+                        <TextBlock Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" Text="Calendar Name" />
+                        <TextBox x:Name="CalendarNameColorBox" Grid.Column="1" Grid.Row="1" Margin="0,4,8,0" />
+
+                        <TextBlock Grid.Column="2" Grid.Row="0" VerticalAlignment="Center" Text="Time/Event" />
+                        <TextBox x:Name="TimeEventColorBox" Grid.Column="2" Grid.Row="1" Margin="0,4,8,0" />
+
+                        <TextBlock Grid.Column="3" Grid.Row="0" VerticalAlignment="Center" Text="Body / Font Size" />
+                        <StackPanel Grid.Column="3" Grid.Row="1" Orientation="Horizontal" Margin="0,4,8,0">
+                            <TextBox x:Name="BodyColorBox" Width="100" Margin="0,0,8,0" />
+                            <TextBox x:Name="FontSizeBox" Width="60" />
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Updates" Margin="0,0,0,12">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="GitHub Releases URL" />
+                        <TextBox x:Name="GithubUrlBox" Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Check On Startup" Margin="0,8,0,0" />
+                        <CheckBox x:Name="CheckOnStartupBox" Grid.Row="1" Grid.Column="1" Margin="8,8,0,0" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Auto-check Hours" Margin="0,8,0,0" />
+                        <TextBox x:Name="AutoCheckHoursBox" Grid.Row="2" Grid.Column="1" Margin="8,8,0,0" Width="80" HorizontalAlignment="Left" />
+
+                        <Button Grid.Row="3" Grid.Column="1" Content="Check for Updates" Margin="8,10,0,0" Width="160" HorizontalAlignment="Left" Click="CheckUpdates_Click" />
+                    </Grid>
+                </GroupBox>
+
+                <TextBlock x:Name="StatusText" Foreground="DarkBlue" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Help" Width="100" Margin="0,0,8,0" Click="Help_Click" />
+            <Button Content="Save &amp; Run" Width="120" Margin="0,0,8,0" Click="SaveRun_Click" />
+            <Button Content="Save &amp; Exit" Width="120" Margin="0,0,8,0" Click="SaveExit_Click" />
+            <Button Content="Close Program" Width="120" Click="CloseProgram_Click" />
+        </StackPanel>
+    </Grid>
+</Window>
