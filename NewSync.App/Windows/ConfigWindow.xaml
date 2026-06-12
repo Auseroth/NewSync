@@ -50,6 +50,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Column="0" Grid.Row="0" VerticalAlignment="Center" Text="Background" />
@@ -66,34 +67,35 @@
                             <TextBox x:Name="BodyColorBox" Width="100" Margin="0,0,8,0" />
                             <TextBox x:Name="FontSizeBox" Width="60" />
                         </StackPanel>
+
+                        <TextBlock Grid.Column="0" Grid.Row="2" VerticalAlignment="Center" Text="Custom Taskbar Height (px)" Margin="0,8,0,0" />
+                        <TextBox x:Name="TaskbarHeightBox" Grid.Column="1" Grid.Row="2" Margin="0,8,8,0" Width="80" HorizontalAlignment="Left" />
                     </Grid>
                 </GroupBox>
 
                 <GroupBox Header="Updates" Margin="0,0,0,12">
-                    <Grid Margin="8">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="190" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="190" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="GitHub Releases URL" />
-                        <TextBox x:Name="GithubUrlBox" Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" />
+        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Version" />
+        <TextBlock x:Name="VersionText" Grid.Row="0" Grid.Column="1" Margin="8,0,0,0"
+                   VerticalAlignment="Center" Foreground="DimGray" />
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Check On Startup" Margin="0,8,0,0" />
-                        <CheckBox x:Name="CheckOnStartupBox" Grid.Row="1" Grid.Column="1" Margin="8,8,0,0" />
+        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="GitHub Releases URL" Margin="0,8,0,0" />
+        <TextBox x:Name="GithubUrlBox" Grid.Row="1" Grid.Column="1" Margin="8,8,0,0" />
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Auto-check Hours" Margin="0,8,0,0" />
-                        <TextBox x:Name="AutoCheckHoursBox" Grid.Row="2" Grid.Column="1" Margin="8,8,0,0" Width="80" HorizontalAlignment="Left" />
-
-                        <Button Grid.Row="3" Grid.Column="1" Content="Check for Updates" Margin="8,10,0,0" Width="160" HorizontalAlignment="Left" Click="CheckUpdates_Click" />
-                    </Grid>
-                </GroupBox>
+        <Button Grid.Row="2" Grid.Column="1" Content="Check for Updates" Margin="8,10,0,0"
+                Width="160" HorizontalAlignment="Left" Click="CheckUpdates_Click" />
+    </Grid>
+</GroupBox>
 
                 <TextBlock x:Name="StatusText" Foreground="DarkBlue" TextWrapping="Wrap" />
             </StackPanel>

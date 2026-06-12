@@ -22,33 +22,28 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
+            <!-- Row 0: calendar name -->
             <TextBlock x:Name="CalendarNameText"
                        Grid.Row="0"
                        Foreground="#888888"
                        FontSize="20"
                        FontWeight="SemiBold"
+                       HorizontalAlignment="Stretch"
                        TextTrimming="CharacterEllipsis"
                        Text="NewSync" />
 
-            <TextBlock x:Name="TimeSummaryText"
-                       Grid.Row="1"
-                       Margin="0,2,0,0"
-                       Foreground="#FFA500"
-                       FontSize="22"
-                       FontWeight="Bold"
-                       TextTrimming="CharacterEllipsis"
-                       Text="Syncing calendar events..." />
-
-            <TextBlock x:Name="BodyText"
-                       Grid.Row="2"
-                       Margin="0,2,0,0"
-                       Foreground="White"
-                       FontSize="20"
-                       TextWrapping="Wrap"
-                       TextTrimming="CharacterEllipsis" />
+            <!-- Row 1: smooth-scrolling viewport — Height set in code-behind -->
+            <ScrollViewer x:Name="ScrollViewport"
+                          Grid.Row="1"
+                          HorizontalAlignment="Stretch"
+                          VerticalScrollBarVisibility="Hidden"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False">
+                <StackPanel x:Name="ScrollContent"
+                            HorizontalAlignment="Stretch" />
+            </ScrollViewer>
         </Grid>
     </Border>
 </Window>

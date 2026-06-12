@@ -12,7 +12,8 @@ namespace NewSync.App;
 
 public partial class App : System.Windows.Application
 {
-    private const int HotkeyId = 4501;
+    private const int HotkeyId = 
+        501;
     private const uint ModAlt = 0x0001;
     private const uint ModControl = 0x0002;
     private const uint ModShift = 0x0004;
@@ -72,13 +73,6 @@ public partial class App : System.Windows.Application
                 });
             };
 
-            if (_appConfig.Updates.CheckOnStartup)
-            {
-                _ = _updateService.CheckNowAsync();
-            }
-
-            _updateService.StartAutoChecks();
-
             if (_configOnlyMode)
             {
                 OpenConfigWindow();
@@ -117,7 +111,7 @@ public partial class App : System.Windows.Application
     private void InitializeTickerWindow()
     {
         _tickerWindow = new MainWindow();
-        _tickerWindow.PlaceOnPrimaryScreen();
+        _tickerWindow.PlaceOnPrimaryScreen(_appConfig.Display);
         _tickerWindow.ApplyDisplay(_appConfig.Display);
         _tickerWindow.CloseProgramRequested += (_, _) => Shutdown();
         _tickerWindow.SourceInitialized += (_, _) => AttachHotkeyHook();
@@ -144,8 +138,13 @@ public partial class App : System.Windows.Application
             _tickerWindow?.ApplyDisplay(_appConfig.Display);
             if (_configOnlyMode)
             {
-                _configWindow?.Close();
-                _configWindow = null;
+                // Launch the main app (without /n) then exit this config-only instance
+                var exe = Environment.ProcessPath;
+                if (!string.IsNullOrWhiteSpace(exe))
+                {
+                    Process.Start(new ProcessStartInfo { FileName = exe, UseShellExecute = true });
+                }
+                Shutdown();
                 return;
             }
 
@@ -203,11 +202,14 @@ public partial class App : System.Windows.Application
     {
         try
         {
+            using var stream = System.Reflection.Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream("NewSync.App.NewSync2.ico");
+
             _tray = new Forms.NotifyIcon
             {
                 Text = "NewSync",
                 Visible = true,
-                Icon = System.Drawing.SystemIcons.Application
+                Icon = new System.Drawing.Icon(stream!)
             };
 
             var menu = new Forms.ContextMenuStrip();

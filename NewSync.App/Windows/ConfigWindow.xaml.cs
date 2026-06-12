@@ -55,9 +55,14 @@ public partial class ConfigWindow : Window
         BodyColorBox.Text = appConfig.Display.BodyColor;
         FontSizeBox.Text = appConfig.Display.FontSize.ToString("0");
 
-        GithubUrlBox.Text = appConfig.Updates.GithubReleasesUrl;
-        CheckOnStartupBox.IsChecked = appConfig.Updates.CheckOnStartup;
-        AutoCheckHoursBox.Text = appConfig.Updates.AutoUpdateIntervalHours.ToString();
+        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+        VersionText.Text = version.ToString(3);
+
+        var effectiveUrl = string.IsNullOrWhiteSpace(appConfig.Updates.GithubReleasesUrl)
+            ? UpdateService.ResolveDefaultReleasesUrl() ?? string.Empty
+            : appConfig.Updates.GithubReleasesUrl;
+        GithubUrlBox.Text = effectiveUrl;
+
         StatusText.Text = "";
     }
 
@@ -75,9 +80,7 @@ public partial class ConfigWindow : Window
             },
             Updates = new UpdateSettings
             {
-                GithubReleasesUrl = GithubUrlBox.Text.Trim(),
-                CheckOnStartup = CheckOnStartupBox.IsChecked == true,
-                AutoUpdateIntervalHours = ParseInt(AutoCheckHoursBox.Text, 24)
+                GithubReleasesUrl = GithubUrlBox.Text.Trim()
             }
         };
 

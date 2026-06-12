@@ -91,9 +91,7 @@ public sealed class ConfigService
         },
         Updates = new UpdateSettings
         {
-            GithubReleasesUrl = string.Empty,
-            CheckOnStartup = true,
-            AutoUpdateIntervalHours = 24
+            GithubReleasesUrl = UpdateService.ResolveDefaultReleasesUrl() ?? string.Empty
         }
     };
 
@@ -136,9 +134,9 @@ public sealed class ConfigService
             config.Display.FontSize = defaults.Display.FontSize;
         }
 
-        if (config.Updates.AutoUpdateIntervalHours < 0)
+        if (string.IsNullOrWhiteSpace(config.Updates.GithubReleasesUrl))
         {
-            config.Updates.AutoUpdateIntervalHours = defaults.Updates.AutoUpdateIntervalHours;
+            config.Updates.GithubReleasesUrl = defaults.Updates.GithubReleasesUrl;
         }
 
         return config;

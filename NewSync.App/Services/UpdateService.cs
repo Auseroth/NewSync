@@ -22,12 +22,14 @@ public sealed class UpdateService : IDisposable
         var version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
         _updater = new GitHubUpdater(new GitHubUpdaterOptions
         {
-            ReleasesApiUrl = appConfig.Updates.GithubReleasesUrl,
+            ReleasesApiUrl = string.IsNullOrWhiteSpace(appConfig.Updates.GithubReleasesUrl)
+                ? ResolveDefaultReleasesUrl() ?? string.Empty
+                : appConfig.Updates.GithubReleasesUrl,
             CurrentVersion = version,
             DownloadDirectory = Path.Combine(AppPaths.LocalDataDir, "updates"),
             UserAgent = "NewSync",
             AssetNameFilter = ".exe",
-            AutoCheckIntervalHours = appConfig.Updates.AutoUpdateIntervalHours
+            AutoCheckIntervalHours = 0
         });
         _updater.UpdateAvailable += (_, result) => UpdateAvailable?.Invoke(this, result);
     }
@@ -48,19 +50,17 @@ public sealed class UpdateService : IDisposable
         return result;
     }
 
-    public void StartAutoChecks()
-    {
-        _updater?.StartAutoChecks();
-    }
-
-    public async Task<bool> DownloadAndLaunchAsync(UpdateCheckResult result, CancellationToken ct = default)
+    public async Task<bool> DownloadAndLaunchAsync(
+        UpdateCheckResult result,
+        IProgress<double>? progress = null,
+        CancellationToken ct = default)
     {
         if (_updater is null)
         {
             return false;
         }
 
-        var installerPath = await _updater.DownloadInstallerAsync(result, ct: ct);
+        var installerPath = await _updater.DownloadInstallerAsync(result, progress, ct);
         if (string.IsNullOrWhiteSpace(installerPath))
         {
             return false;
@@ -73,5 +73,26 @@ public sealed class UpdateService : IDisposable
     public void Dispose()
     {
         _updater?.Dispose();
+    }
+
+    public static string? ResolveDefaultReleasesUrl()
+    {
+        var repoUrl = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value;
+
+        if (string.IsNullOrWhiteSpace(repoUrl))
+        {
+            return null;
+        }
+
+        var uri = new Uri(repoUrl.TrimEnd('/'));
+        if (!uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var path = uri.AbsolutePath.Trim('/');
+        return $"https://api.github.com/repos/{path}/releases";
     }
 }

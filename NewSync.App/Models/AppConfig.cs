@@ -18,6 +18,4 @@ public sealed class DisplaySettings
 public sealed class UpdateSettings
 {
     public string GithubReleasesUrl { get; set; } = string.Empty;
-    public bool CheckOnStartup { get; set; } = true;
-    public int AutoUpdateIntervalHours { get; set; } = 24;
 }

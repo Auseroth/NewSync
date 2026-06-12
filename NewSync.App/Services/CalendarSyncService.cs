@@ -1,5 +1,7 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Net.Http;
 using NewSync.App.Models;
 
@@ -183,7 +185,7 @@ public sealed class CalendarSyncService
                     current.Summary = value;
                     break;
                 case "DESCRIPTION":
-                    current.Description = value.Replace("\\n", " ");
+                    current.Description = StripHtml(UnescapeIcal(value));
                     break;
                 case "STATUS":
                     current.Status = value;
@@ -245,6 +247,44 @@ public sealed class CalendarSyncService
         }
 
         return null;
+    }
+
+    // Unescape iCal backslash sequences before HTML processing.
+    private static string UnescapeIcal(string value)
+    {
+        return value
+            .Replace("\\n", Environment.NewLine)
+            .Replace("\\N", Environment.NewLine)
+            .Replace("\\,", ",")
+            .Replace("\\;", ";")
+            .Replace("\\\\", "\\");
+    }
+
+    // Strip HTML tags and decode HTML entities so descriptions display as plain text.
+    private static string StripHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return html;
+        }
+
+        var text = WebUtility.HtmlDecode(html);
+
+        // Preserve paragraph breaks and list structure when stripping markup.
+        text = Regex.Replace(text, @"<\s*br\s*/?\s*>", Environment.NewLine, RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*(p|div|li|h\d)[^>]*>", string.Empty, RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"</\s*(p|div|li|h\d)\s*>", Environment.NewLine, RegexOptions.IgnoreCase);
+
+        // Strip any remaining tags after block separators have been normalized.
+        text = Regex.Replace(text, @"<[^>]+>", string.Empty);
+
+        // Keep actual line breaks, but trim stray spaces around them.
+        text = text.Replace("\r", string.Empty);
+        text = Regex.Replace(text, @"[ \t]+\n", "\n");
+        text = Regex.Replace(text, @"\n[ \t]+", "\n");
+        text = Regex.Replace(text, @"\n{2,}", "\n");
+
+        return text.Trim();
     }
 
     private sealed class EventBuilder

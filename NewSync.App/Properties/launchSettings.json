@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "NewSync.App": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,63 +1,100 @@
+﻿using System.ComponentModel;
+using System.Text;
 using System.Windows;
-using System.Windows.Media;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using NewSync.App.Models;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using BrushConverter = System.Windows.Media.BrushConverter;
 
 namespace NewSync.App;
 
 public partial class MainWindow : Window
 {
-    private readonly DispatcherTimer _cycleTimer;
-    private readonly DispatcherTimer _bodyScrollTimer;
+    // Fixed pixel height of the ticker bar — never changes for any reason.
+    private const double FixedWindowHeight = 190.0;
+
+    // Seconds to hold content at the end (scrolled or not) before advancing.
+    private const double PostDisplayPauseSec = 5.0;
+
+    // Pixels per second for continuous upward scroll.
+    private const double ScrollPixelsPerSecond = 40.0;
+    private const int ScrollTickMilliseconds = 16;
+
+    private DispatcherTimer? _pauseTimer;
+    private DispatcherTimer? _scrollTimer;
+    private double _scrollTarget;
     private IReadOnlyList<TickerEvent> _events = [];
     private int _eventIndex = -1;
-    private List<string> _bodySegments = [];
-    private int _bodySegmentIndex;
+
+    // Incremented on every new display call; lets deferred callbacks detect stale invocations.
+    private int _displayGeneration;
+
+    private bool _isStatus;
+    private string _statusMessage = string.Empty;
+    private Brush _timeEventBrush = Brushes.Orange;
+    private Brush _bodyBrush = Brushes.White;
+
+    // Approximate header row height at current font size; used to compute viewport height.
+    // FontSize(20) * 1.4 + 6 = 34 by default.
+    private double _slotHeight = 34.0;
+
+    private DisplaySettings _displaySettings = new();
 
     public event EventHandler? CloseProgramRequested;
 
     public MainWindow()
     {
         InitializeComponent();
-
-        _cycleTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(8)
-        };
-        _cycleTimer.Tick += (_, _) => ShowNextEvent();
-
-        _bodyScrollTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(2)
-        };
-        _bodyScrollTimer.Tick += (_, _) => RotateBodySegment();
     }
 
-    public void PlaceOnPrimaryScreen()
+    public void PlaceOnPrimaryScreen(DisplaySettings settings)
     {
-        var wa = SystemParameters.WorkArea;
-        Left = wa.Left;
-        Width = wa.Width;
-        Height = 110;
-        Top = wa.Bottom - Height;
+        _displaySettings = settings;
+        _slotHeight = settings.FontSize * 1.4 + 6;
+        ApplyFixedLayout();
+        UpdatePosition();
+
+        SystemParameters.StaticPropertyChanged -= OnWorkAreaChanged;
+        SystemParameters.StaticPropertyChanged += OnWorkAreaChanged;
     }
 
     public void ApplyDisplay(DisplaySettings settings)
     {
-        Background = ParseBrush(settings.BackgroundColor, System.Windows.Media.Brushes.Black);
-        CalendarNameText.Foreground = ParseBrush(settings.CalendarNameColor, System.Windows.Media.Brushes.Gray);
-        TimeSummaryText.Foreground = ParseBrush(settings.TimeEventColor, System.Windows.Media.Brushes.Orange);
-        BodyText.Foreground = ParseBrush(settings.BodyColor, System.Windows.Media.Brushes.White);
+        _displaySettings = settings;
+        _slotHeight = settings.FontSize * 1.4 + 6;
 
+        Background = ParseBrush(settings.BackgroundColor, Brushes.Black);
+        CalendarNameText.Foreground = ParseBrush(settings.CalendarNameColor, Brushes.Gray);
         CalendarNameText.FontSize = settings.FontSize;
-        TimeSummaryText.FontSize = settings.FontSize + 2;
-        BodyText.FontSize = settings.FontSize;
+        _timeEventBrush = ParseBrush(settings.TimeEventColor, Brushes.Orange);
+        _bodyBrush = ParseBrush(settings.BodyColor, Brushes.White);
+
+        ApplyFixedLayout();
+        StopAllTimers();
+
+        if (_isStatus)
+        {
+            ShowStatus(_statusMessage);
+            return;
+        }
+
+        if (_eventIndex >= 0 && _eventIndex < _events.Count)
+        {
+            DisplayEvent(_events[_eventIndex]);
+        }
+        else
+        {
+            UpdatePosition();
+        }
     }
 
     public void SetEvents(IReadOnlyList<TickerEvent> events)
     {
         _events = events;
         _eventIndex = -1;
+        StopAllTimers();
 
         if (_events.Count == 0)
         {
@@ -66,89 +103,231 @@ public partial class MainWindow : Window
         }
 
         ShowNextEvent();
-        _cycleTimer.Start();
     }
 
     public void ShowStatus(string message)
     {
-        _cycleTimer.Stop();
-        _bodyScrollTimer.Stop();
+        StopAllTimers();
+        _isStatus = true;
+        _statusMessage = message;
+        _displayGeneration++;
         CalendarNameText.Text = "NewSync";
-        TimeSummaryText.Text = message;
-        BodyText.Text = string.Empty;
+
+        ClearScrollContent();
+        ScrollContent.Children.Add(new TextBlock
+        {
+            Text = message,
+            FontSize = _displaySettings.FontSize,
+            Foreground = _bodyBrush,
+            TextWrapping = TextWrapping.Wrap
+        });
     }
 
     private void ShowNextEvent()
     {
-        if (_events.Count == 0)
+        if (_events.Count == 0) return;
+
+        _eventIndex = (_eventIndex + 1) % _events.Count;
+        DisplayEvent(_events[_eventIndex]);
+    }
+
+    private void DisplayEvent(TickerEvent item)
+    {
+        StopAllTimers();
+        _isStatus = false;
+        var generation = ++_displayGeneration;
+        CalendarNameText.Text = item.CalendarName;
+
+        ClearScrollContent();
+
+        // Time + summary line — always shown first, in the accent colour.
+        ScrollContent.Children.Add(new TextBlock
         {
+            Text = item.TimeSummary,
+            FontSize = _displaySettings.FontSize,
+            Foreground = _timeEventBrush,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+
+        // Full description — WPF wraps it natively; no manual segmentation needed.
+        if (!string.IsNullOrWhiteSpace(item.Description))
+        {
+            AddDescriptionContent(item.Description.Trim());
+        }
+
+        // Defer the scroll decision until WPF has finished measuring the new content.
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (generation != _displayGeneration) return;
+            CheckAndStartScroll();
+        }, DispatcherPriority.ContextIdle);
+    }
+
+    // Compares actual rendered content height to viewport; scrolls or pauses accordingly.
+    private void CheckAndStartScroll()
+    {
+        ScrollViewport.UpdateLayout();
+        ScrollContent.UpdateLayout();
+
+        // If layout is not fully ready yet, try again on the next UI tick.
+        if (ScrollViewport.ActualHeight <= 0 || ScrollViewport.ActualWidth <= 0)
+        {
+            Dispatcher.InvokeAsync(CheckAndStartScroll, DispatcherPriority.ContextIdle);
             return;
         }
 
-        _eventIndex = (_eventIndex + 1) % _events.Count;
-        var item = _events[_eventIndex];
+        var contentHeight = ScrollViewport.ExtentHeight;
+        var viewportHeight = ScrollViewport.ViewportHeight;
+        var overflow = contentHeight - viewportHeight;
 
-        CalendarNameText.Text = item.CalendarName;
-        TimeSummaryText.Text = item.TimeSummary;
-
-        _bodySegments = SegmentText(item.BodyLine, 80);
-        _bodySegmentIndex = 0;
-        BodyText.Text = _bodySegments[0];
-
-        if (_bodySegments.Count > 1)
+        if (overflow > 2)
         {
-            _bodyScrollTimer.Start();
+            StartScrollAnimation(overflow);
         }
         else
         {
-            _bodyScrollTimer.Stop();
+            ScheduleNextEvent();
         }
     }
 
-    private void RotateBodySegment()
+    private void StartScrollAnimation(double totalScroll)
     {
-        if (_bodySegments.Count <= 1)
+        _scrollTimer?.Stop();
+        ScrollViewport.ScrollToVerticalOffset(0);
+        _scrollTarget = totalScroll;
+
+        _scrollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ScrollTickMilliseconds) };
+        _scrollTimer.Tick += (_, _) =>
         {
-            _bodyScrollTimer.Stop();
+            var current = ScrollViewport.VerticalOffset;
+            var step = ScrollPixelsPerSecond * (ScrollTickMilliseconds / 1000.0);
+            var next = Math.Min(_scrollTarget, current + step);
+
+            ScrollViewport.ScrollToVerticalOffset(next);
+
+            if (next >= _scrollTarget - 0.5)
+            {
+                _scrollTimer?.Stop();
+                _scrollTimer = null;
+                ScheduleNextEvent();
+            }
+        };
+        _scrollTimer.Start();
+    }
+
+    private void ScheduleNextEvent()
+    {
+        _pauseTimer?.Stop();
+        _pauseTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(PostDisplayPauseSec) };
+        _pauseTimer.Tick += (_, _) =>
+        {
+            _pauseTimer?.Stop();
+            _pauseTimer = null;
+            ShowNextEvent();
+        };
+        _pauseTimer.Start();
+    }
+
+    private void AddDescriptionContent(string description)
+    {
+        var lines = description.Replace("\r", string.Empty).Split('\n');
+        var paragraphSeen = false;
+        var sb = new StringBuilder();
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.Trim();
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            if (!paragraphSeen)
+            {
+                sb.AppendLine(line);
+                sb.AppendLine();
+                paragraphSeen = true;
+                continue;
+            }
+
+            if (line.EndsWith(":", StringComparison.Ordinal))
+            {
+                sb.AppendLine(line);
+                continue;
+            }
+
+            sb.AppendLine($"• {line}");
+        }
+
+        var text = sb.ToString().TrimEnd();
+        if (text.Length == 0)
+        {
             return;
         }
 
-        _bodySegmentIndex = (_bodySegmentIndex + 1) % _bodySegments.Count;
-        BodyText.Text = _bodySegments[_bodySegmentIndex];
+        ScrollContent.Children.Add(new TextBlock
+        {
+            Text = text,
+            FontSize = _displaySettings.FontSize,
+            Foreground = _bodyBrush,
+            TextWrapping = TextWrapping.Wrap
+        });
     }
 
-    private static List<string> SegmentText(string text, int segmentLength)
+    private void StopAllTimers()
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return [string.Empty];
-        }
+        _pauseTimer?.Stop();
+        _pauseTimer = null;
 
-        var output = new List<string>();
-        var remaining = text.Trim();
-
-        while (remaining.Length > segmentLength)
-        {
-            var split = remaining.LastIndexOf(' ', segmentLength);
-            if (split <= 0)
-            {
-                split = segmentLength;
-            }
-
-            output.Add(remaining[..split].Trim());
-            remaining = remaining[split..].Trim();
-        }
-
-        output.Add(remaining);
-        return output;
+        _scrollTimer?.Stop();
+        _scrollTimer = null;
     }
 
-    private static System.Windows.Media.Brush ParseBrush(string colorHex, System.Windows.Media.Brush fallback)
+    private void ClearScrollContent()
+    {
+        ScrollViewport.ScrollToVerticalOffset(0);
+        ScrollContent.Children.Clear();
+    }
+
+    // Window height is always FixedWindowHeight.
+    // Viewport height = fixed height minus the header row and Border padding.
+    private void ApplyFixedLayout()
+    {
+        Height = FixedWindowHeight;
+        var bodyPixels = FixedWindowHeight - _slotHeight - 20; // subtract header + Border padding
+        ScrollViewport.Height = Math.Max(_slotHeight, bodyPixels);
+    }
+
+    private void UpdatePosition()
+    {
+        var wa = SystemParameters.WorkArea;
+        Left = wa.Left;
+        Width = wa.Width;
+        Top = wa.Bottom - Height;
+    }
+
+    private void OnWorkAreaChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SystemParameters.WorkArea))
+        {
+            UpdatePosition();
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        StopAllTimers();
+        SystemParameters.StaticPropertyChanged -= OnWorkAreaChanged;
+        base.OnClosed(e);
+    }
+
+    private static Brush ParseBrush(string colorHex, Brush fallback)
     {
         try
         {
             var converter = new BrushConverter();
-            if (converter.ConvertFromString(colorHex) is System.Windows.Media.Brush b)
+            if (converter.ConvertFromString(colorHex) is Brush b)
             {
                 return b;
             }
