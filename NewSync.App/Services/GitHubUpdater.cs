@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using System.Net.Http;
-using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace NewSync.App.Services;
 
@@ -49,14 +50,30 @@ public sealed class GitHubUpdater : IDisposable
 
         try
         {
-            var release = await _http.GetFromJsonAsync<GitHubRelease>(_options.ReleasesApiUrl, ct);
+            using var response = await _http.GetAsync(_options.ReleasesApiUrl, ct);
+            response.EnsureSuccessStatusCode();
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+
+            GitHubRelease? release = null;
+            if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                release = JsonSerializer.Deserialize<GitHubRelease>(doc.RootElement.GetRawText());
+            }
+            else if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                var releases = JsonSerializer.Deserialize<GitHubRelease[]>(doc.RootElement.GetRawText()) ?? [];
+                release = releases.FirstOrDefault(r => r is not null && !r.Draft && !r.PreRelease)
+                    ?? releases.FirstOrDefault();
+            }
+
             if (release is null)
             {
                 return null;
             }
 
-            var tag = (release.TagName ?? string.Empty).Trim().TrimStart('v', 'V');
-            if (!Version.TryParse(tag, out var latest))
+            if (!TryParseVersionTag(release.TagName, out var latest))
             {
                 return null;
             }
@@ -85,6 +102,27 @@ public sealed class GitHubUpdater : IDisposable
         {
             return null;
         }
+    }
+
+    private static bool TryParseVersionTag(string? tagName, out Version latest)
+    {
+        latest = new Version(0, 0, 0, 0);
+
+        var tag = (tagName ?? string.Empty).Trim().TrimStart('v', 'V');
+        if (Version.TryParse(tag, out var parsed) && parsed is not null)
+        {
+            latest = parsed;
+            return true;
+        }
+
+        var match = Regex.Match(tag, @"\d+(?:\.\d+){1,3}");
+        if (match.Success && Version.TryParse(match.Value, out parsed) && parsed is not null)
+        {
+            latest = parsed;
+            return true;
+        }
+
+        return false;
     }
 
     public async Task<string?> DownloadInstallerAsync(UpdateCheckResult result, IProgress<double>? progress = null, CancellationToken ct = default)
@@ -169,6 +207,8 @@ public sealed class GitHubUpdater : IDisposable
     {
         [JsonPropertyName("tag_name")] public string? TagName { get; set; }
         [JsonPropertyName("body")] public string? Body { get; set; }
+        [JsonPropertyName("draft")] public bool Draft { get; set; }
+        [JsonPropertyName("prerelease")] public bool PreRelease { get; set; }
         [JsonPropertyName("assets")] public GitHubAsset[]? Assets { get; set; }
     }
 

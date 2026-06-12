@@ -140,17 +140,69 @@ public partial class ConfigWindow : Window
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
-        var (app, _) = BuildConfigs();
-        _updateService.Configure(app);
-        var result = await _updateService.CheckNowAsync();
-
-        if (result?.UpdateAvailable == true)
+        var checkButton = sender as System.Windows.Controls.Button;
+        if (checkButton is not null)
         {
-            StatusText.Text = $"Update available: {result.TagName}";
+            checkButton.IsEnabled = false;
         }
-        else
+
+        try
         {
-            StatusText.Text = "No update available.";
+            StatusText.Text = "Checking for updates...";
+
+            var (app, _) = BuildConfigs();
+            _updateService.Configure(app);
+            var result = await _updateService.CheckNowAsync();
+
+            if (result?.UpdateAvailable == true)
+            {
+                var prompt = System.Windows.MessageBox.Show(
+                    this,
+                    $"Version {result.TagName} is available. Download and install now?",
+                    "NewSync Update",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (prompt == MessageBoxResult.Yes)
+                {
+                    StatusText.Text = "Downloading update...";
+                    var progress = new Progress<double>(p =>
+                    {
+                        StatusText.Text = $"Downloading update... {p:P0}";
+                    });
+
+                    var launched = await _updateService.DownloadAndLaunchAsync(result, progress);
+                    if (launched)
+                    {
+                        StatusText.Text = "Installer launched. Complete setup to finish the update.";
+                        return;
+                    }
+
+                    StatusText.Text = "Update found, but installer download or launch failed.";
+                    return;
+                }
+
+                StatusText.Text = $"Update available: {result.TagName}";
+            }
+            else if (result is null)
+            {
+                StatusText.Text = "Update check failed. Verify the GitHub releases API URL.";
+            }
+            else
+            {
+                StatusText.Text = "No update available.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Update check failed: {ex.Message}";
+        }
+        finally
+        {
+            if (checkButton is not null)
+            {
+                checkButton.IsEnabled = true;
+            }
         }
     }
 

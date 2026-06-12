@@ -46,6 +46,10 @@ public sealed class UpdateService : IDisposable
         {
             _logger.Info($"Update available: {result.TagName}");
         }
+        else if (result is null)
+        {
+            _logger.Error("Update check failed or returned an unsupported response.");
+        }
 
         return result;
     }

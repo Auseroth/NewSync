@@ -1,7 +1,8 @@
 {
   "profiles": {
     "NewSync.App": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "/n"
     }
   }
 }
