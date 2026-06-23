@@ -86,8 +86,8 @@ public sealed class ConfigService
             BackgroundColor = "#000000",
             CalendarNameColor = "#888888",
             TimeEventColor = "#FFA500",
-            BodyColor = "#FFFFFF",
-            FontSize = 20
+            BodyColor = "#11ed4c",
+            FontSize = 30
         },
         Updates = new UpdateSettings
         {

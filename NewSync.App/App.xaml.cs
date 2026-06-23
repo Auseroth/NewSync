@@ -166,7 +166,7 @@ public partial class App : System.Windows.Application
         {
             await ForceRefreshNowAsync();
 
-            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(30));
+            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(10));
             while (await timer.WaitForNextTickAsync(_syncCts.Token))
             {
                 await ForceRefreshNowAsync();

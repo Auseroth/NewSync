@@ -76,7 +76,7 @@ public partial class ConfigWindow : Window
                 CalendarNameColor = CalendarNameColorBox.Text.Trim(),
                 TimeEventColor = TimeEventColorBox.Text.Trim(),
                 BodyColor = BodyColorBox.Text.Trim(),
-                FontSize = ParseDouble(FontSizeBox.Text, 20)
+                FontSize = ParseDouble(FontSizeBox.Text, 30)
             },
             Updates = new UpdateSettings
             {

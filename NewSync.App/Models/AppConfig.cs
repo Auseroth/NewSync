@@ -11,8 +11,8 @@ public sealed class DisplaySettings
     public string BackgroundColor { get; set; } = "#000000";
     public string CalendarNameColor { get; set; } = "#888888";
     public string TimeEventColor { get; set; } = "#FFA500";
-    public string BodyColor { get; set; } = "#FFFFFF";
-    public double FontSize { get; set; } = 20;
+    public string BodyColor { get; set; } = "#11ed4c";
+    public double FontSize { get; set; } = 30;
 }
 
 public sealed class UpdateSettings

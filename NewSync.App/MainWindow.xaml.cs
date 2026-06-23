@@ -13,13 +13,13 @@ namespace NewSync.App;
 public partial class MainWindow : Window
 {
     // Fixed pixel height of the ticker bar — never changes for any reason.
-    private const double FixedWindowHeight = 190.0;
+    private const double FixedWindowHeight = 260.0;
 
     // Seconds to hold content at the end (scrolled or not) before advancing.
     private const double PostDisplayPauseSec = 5.0;
 
     // Pixels per second for continuous upward scroll.
-    private const double ScrollPixelsPerSecond = 40.0;
+    private const double ScrollPixelsPerSecond = 30.0;
     private const int ScrollTickMilliseconds = 16;
 
     private DispatcherTimer? _pauseTimer;
