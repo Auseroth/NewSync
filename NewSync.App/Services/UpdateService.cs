@@ -97,6 +97,6 @@ public sealed class UpdateService : IDisposable
         }
 
         var path = uri.AbsolutePath.Trim('/');
-        return $"https://api.github.com/repos/{path}/releases";
+        return $"https://api.github.com/repos/{path}";
     }
 }
