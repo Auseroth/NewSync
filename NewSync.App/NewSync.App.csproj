@@ -10,9 +10,9 @@
     <ApplicationIcon>NewSync2.ico</ApplicationIcon>
     <AssemblyName>NewSync</AssemblyName>
     <RootNamespace>NewSync.App</RootNamespace>
-    <AssemblyVersion>1.3.1.0</AssemblyVersion>
-    <FileVersion>1.3.1.0</FileVersion>
-    <Version>1.3.1</Version>
+    <AssemblyVersion>1.3.2.0</AssemblyVersion>
+    <FileVersion>1.3.2.0</FileVersion>
+    <Version>1.3.2</Version>
     <RepositoryUrl>https://github.com/Auseroth/NewSync/releases/latest</RepositoryUrl>
   </PropertyGroup>
 
