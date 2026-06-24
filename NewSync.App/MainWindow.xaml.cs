@@ -13,7 +13,7 @@ namespace NewSync.App;
 public partial class MainWindow : Window
 {
     // Fixed pixel height of the ticker bar — never changes for any reason.
-    private const double FixedWindowHeight = 260.0;
+    private const double FixedWindowHeight = 290.0;
 
     // Seconds to hold content at the end (scrolled or not) before advancing.
     private const double PostDisplayPauseSec = 5.0;
@@ -37,8 +37,8 @@ public partial class MainWindow : Window
     private Brush _bodyBrush = Brushes.White;
 
     // Approximate header row height at current font size; used to compute viewport height.
-    // FontSize(20) * 1.4 + 6 = 34 by default.
-    private double _slotHeight = 34.0;
+    // FontSize(30) * 1.4 + 6 = 48 by default.
+    private double _slotHeight = 48.0;
 
     private DisplaySettings _displaySettings = new();
 
@@ -136,27 +136,23 @@ public partial class MainWindow : Window
         StopAllTimers();
         _isStatus = false;
         var generation = ++_displayGeneration;
+
+        // 1. Set the top calendar name
         CalendarNameText.Text = item.CalendarName;
+
+        // 2. Pin the event summary to our new non-scrolling TextBlock
+        EventTitleText.Text = item.TimeSummary;
+        EventTitleText.Foreground = _timeEventBrush; // Keeps your orange accent color
 
         ClearScrollContent();
 
-        // Time + summary line — always shown first, in the accent colour.
-        ScrollContent.Children.Add(new TextBlock
-        {
-            Text = item.TimeSummary,
-            FontSize = _displaySettings.FontSize,
-            Foreground = _timeEventBrush,
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 0, 0, 4)
-        });
-
-        // Full description — WPF wraps it natively; no manual segmentation needed.
+        // 3. ONLY add the description to the scroll container
         if (!string.IsNullOrWhiteSpace(item.Description))
         {
             AddDescriptionContent(item.Description.Trim());
         }
 
-        // Defer the scroll decision until WPF has finished measuring the new content.
+        // Defer the scroll decision
         Dispatcher.InvokeAsync(() =>
         {
             if (generation != _displayGeneration) return;
@@ -294,9 +290,10 @@ public partial class MainWindow : Window
     // Viewport height = fixed height minus the header row and Border padding.
     private void ApplyFixedLayout()
     {
+        // Keep the overall window height calculation intact
         Height = FixedWindowHeight;
-        var bodyPixels = FixedWindowHeight - _slotHeight - 20; // subtract header + Border padding
-        ScrollViewport.Height = Math.Max(_slotHeight, bodyPixels);
+
+        ScrollViewport.ClearValue(HeightProperty);
     }
 
     private void UpdatePosition()
